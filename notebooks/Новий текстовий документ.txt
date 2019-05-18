@@ -1,0 +1,90 @@
+from Phonetic import RussianLetter, EnglishLetter
+from feature_engineering import *
+from data_loaders import load_processed_data
+from model_evaluation import *
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from model_training import train_classifiers
+from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
+import warnings
+warnings.filterwarnings('ignore')
+
+RussianLetter('р').classify()
+{'consonant': True,
+ 'deaf': False,
+ 'hard': False,
+ 'mark': False,
+ 'paired': False,
+ 'shock': False,
+ 'soft': False,
+ 'sonorus': True,
+ 'vowel': False}
+EnglishLetter('d').classify()
+{'consonant': True,
+ 'deaf': False,
+ 'hard': True,
+ 'mark': False,
+ 'paired': False,
+ 'shock': False,
+ 'soft': False,
+ 'sonorus': True,
+ 'vowel': False}
+
+fict_df = load_processed_data()
+
+data_full = fict_df.drop(
+    [
+    'name', 
+    'surname',
+    'is_fict',
+    'is_fim',
+    'is_gef'
+    ], 
+    axis=1).copy()
+X_data = data_full.drop('is_fem', axis=1)
+y = data_full.is_fem
+
+
+seed = 7
+test_size = 0.3
+X_train, X_test, y_train, y_test = train_test_split(X_data, y, test_size=test_size, random_state=seed)
+rfc = RandomForestClassifier()
+rfc_model = rfc.fit(X_train, y_train)
+
+def score_testing_dataset (model):
+    """
+    Предсказывает результат на искусственном наборе данных.
+    :param model: обученная модель
+    """
+    testing_dataset = [
+        "Федорова Ольга", "Fedorova Olga",
+        "Сітайло Максим", "Sitaylo Maksym",
+        "Пархомчук Таміла", "Parhomchuk Tamila",
+        "Наумов Ярослав", "Naumov Yaroslav"]
+
+    for name in testing_dataset: 
+        print ("{} — {}".format(name, get_predictions_vector(model, name)[1]))
+
+score_testing_dataset(rfc_model)
+
+predictions = rfc_model.predict(X_test)
+print("Classification report: ")
+print(classification_report(y_test, predictions))
+print("Accuracy for Random Forest Model: %.2f" 
+          % (accuracy_score(y_test, predictions) * 100))
+print("ROC AUC from first Random Forest Model: %.2f"
+             % (roc_auc_score(y_test, predictions)))
+
+fict_df = load_processed_data()
+data_full = fict_df.drop(
+    [
+    'name', 
+    'surname',
+    'is_fict',
+    'is_fim',
+    'is_gef'
+    ], 
+    axis=1).copy()
+X_data = data_full.drop('is_fem', axis=1)
+y = data_full.is_fem
+fem_models = train_classifiers(X_data, y)
